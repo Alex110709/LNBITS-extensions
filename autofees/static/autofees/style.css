@@ -1,0 +1,111 @@
+/* Auto Fees Extension Styles */
+
+.autofees-policy-card {
+  border-radius: 8px;
+  transition: box-shadow 0.3s;
+}
+
+.autofees-policy-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.autofees-strategy-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.autofees-strategy-balanced {
+  background-color: #2196f3;
+  color: white;
+}
+
+.autofees-strategy-aggressive {
+  background-color: #f44336;
+  color: white;
+}
+
+.autofees-strategy-conservative {
+  background-color: #4caf50;
+  color: white;
+}
+
+.autofees-status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.autofees-adjustment-item {
+  padding: 12px;
+  border-left: 3px solid transparent;
+  transition: all 0.2s;
+}
+
+.autofees-adjustment-item.success {
+  border-left-color: #4caf50;
+}
+
+.autofees-adjustment-item.failed {
+  border-left-color: #f44336;
+}
+
+.autofees-adjustment-item:hover {
+  background-color: #f5f5f5;
+}
+
+.autofees-fee-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.autofees-fee-value {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: #1976d2;
+}
+
+.autofees-liquidity-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    #f44336 0%,
+    #ff9800 25%,
+    #4caf50 50%,
+    #2196f3 75%,
+    #9c27b0 100%
+  );
+}
+
+.autofees-stats-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.autofees-stats-number {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.autofees-info-box {
+  padding: 16px;
+  background-color: #e3f2fd;
+  border-left: 4px solid #2196f3;
+  border-radius: 4px;
+  margin: 16px 0;
+}
+
+.autofees-warning-box {
+  padding: 16px;
+  background-color: #fff3e0;
+  border-left: 4px solid #ff9800;
+  border-radius: 4px;
+  margin: 16px 0;
+}

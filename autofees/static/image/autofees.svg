@@ -1,0 +1,25 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" rx="15" fill="#2196F3"/>
+
+  <!-- Lightning bolt -->
+  <g transform="translate(30, 20)">
+    <path d="M25 5 L10 30 L18 30 L15 50 L35 20 L27 20 Z" fill="#FFC107" stroke="#FF9800" stroke-width="2"/>
+  </g>
+
+  <!-- Circular arrows indicating auto-adjustment -->
+  <g transform="translate(50, 50)">
+    <!-- Left arrow -->
+    <path d="M -20 -15 A 20 20 0 0 1 -5 -25" stroke="#FFFFFF" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M -20 -15 L -15 -10 L -17 -18 Z" fill="#FFFFFF"/>
+
+    <!-- Right arrow -->
+    <path d="M 20 15 A 20 20 0 0 1 5 25" stroke="#FFFFFF" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M 20 15 L 15 10 L 17 18 Z" fill="#FFFFFF"/>
+  </g>
+
+  <!-- Fee symbols (coins) -->
+  <circle cx="15" cy="75" r="5" fill="#FFEB3B" stroke="#FBC02D" stroke-width="1.5"/>
+  <circle cx="85" cy="75" r="5" fill="#FFEB3B" stroke="#FBC02D" stroke-width="1.5"/>
+
+  <text x="50" y="93" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#FFFFFF" text-anchor="middle">AUTO FEES</text>
+</svg>

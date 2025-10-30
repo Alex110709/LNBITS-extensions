@@ -1,0 +1,615 @@
+{% extends "base.html" %} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h5 class="q-my-none">Auto Channel Fees</h5>
+        <p>
+          Automatically adjust Lightning channel fees based on network
+          conditions and liquidity balance.
+        </p>
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h6 class="q-my-none">Fee Policies</h6>
+          </div>
+          <div class="col-auto">
+            <q-btn
+              unelevated
+              color="primary"
+              @click="showCreateDialog = true"
+              icon="add"
+              label="New Policy"
+            ></q-btn>
+          </div>
+        </div>
+
+        <q-table
+          flat
+          dense
+          :rows="policies"
+          :columns="policiesTable.columns"
+          row-key="id"
+          :pagination.sync="policiesTable.pagination"
+        >
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+            </q-tr>
+          </template>
+
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="play_arrow"
+                  color="primary"
+                  @click="triggerPolicy(props.row.id)"
+                  :disable="!props.row.enabled"
+                >
+                  <q-tooltip>Trigger Now</q-tooltip>
+                </q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="history"
+                  color="info"
+                  @click="showHistory(props.row)"
+                >
+                  <q-tooltip>View History</q-tooltip>
+                </q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="edit"
+                  color="primary"
+                  @click="editPolicy(props.row)"
+                >
+                  <q-tooltip>Edit</q-tooltip>
+                </q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  :icon="props.row.enabled ? 'pause' : 'play_arrow'"
+                  :color="props.row.enabled ? 'warning' : 'positive'"
+                  @click="togglePolicy(props.row)"
+                >
+                  <q-tooltip>{{
+                    props.row.enabled ? 'Disable' : 'Enable'
+                  }}</q-tooltip>
+                </q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="delete"
+                  color="negative"
+                  @click="deletePolicy(props.row.id)"
+                >
+                  <q-tooltip>Delete</q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                <span v-if="col.name === 'enabled'">
+                  <q-badge :color="col.value ? 'positive' : 'grey'">
+                    {{ col.value ? 'Active' : 'Disabled' }}
+                  </q-badge>
+                </span>
+                <span v-else-if="col.name === 'strategy'">
+                  <q-badge color="blue">{{ col.value }}</q-badge>
+                </span>
+                <span v-else>{{ col.value }}</span>
+              </q-td>
+            </q-tr>
+          </template>
+        </q-table>
+      </q-card-section>
+    </q-card>
+
+    <q-card v-if="recentAdjustments.length > 0">
+      <q-card-section>
+        <h6 class="q-my-none">Recent Adjustments</h6>
+        <q-list dense>
+          <q-item v-for="adj in recentAdjustments" :key="adj.id">
+            <q-item-section>
+              <q-item-label>
+                Channel: {{ adj.channel_id.substring(0, 16) }}...
+              </q-item-label>
+              <q-item-label caption>
+                {{ adj.reason }}
+              </q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-item-label>
+                {{ adj.old_fee_rate }} → {{ adj.new_fee_rate }} ppm
+              </q-item-label>
+              <q-item-label caption>
+                {{ formatTimestamp(adj.timestamp) }}
+              </q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-badge :color="adj.success ? 'positive' : 'negative'">
+                {{ adj.success ? 'Success' : 'Failed' }}
+              </q-badge>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="q-my-none">How It Works</h6>
+        <p class="q-mt-md">
+          Auto Channel Fees monitors your Lightning channels and automatically
+          adjusts fees based on liquidity balance:
+        </p>
+        <ul>
+          <li>
+            <strong>Low Liquidity:</strong> Increases fees to discourage
+            outbound payments
+          </li>
+          <li>
+            <strong>High Liquidity:</strong> Decreases fees to encourage
+            outbound payments
+          </li>
+          <li>
+            <strong>Balanced:</strong> Maintains default fees
+          </li>
+        </ul>
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <h6 class="q-my-none">Strategies</h6>
+        <p><strong>Balanced:</strong> Moderate adjustments (recommended)</p>
+        <p><strong>Aggressive:</strong> Large fee swings for quick rebalancing</p>
+        <p><strong>Conservative:</strong> Small changes around defaults</p>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+
+<!-- Create/Edit Policy Dialog -->
+<q-dialog v-model="showPolicyDialog" position="top">
+  <q-card class="q-pa-lg lnbits__dialog-card" style="width: 600px">
+    <q-card-section>
+      <h6 class="q-my-none">
+        {{ editingPolicy ? 'Edit Policy' : 'Create New Policy' }}
+      </h6>
+    </q-card-section>
+    <q-card-section>
+      <q-form @submit="savePolicy" class="q-gutter-md">
+        <q-input
+          filled
+          v-model="policyForm.name"
+          label="Policy Name"
+          hint="A friendly name for this policy"
+          :rules="[val => !!val || 'Name is required']"
+        ></q-input>
+
+        <q-select
+          filled
+          v-model="policyForm.strategy"
+          :options="strategies"
+          option-value="id"
+          option-label="name"
+          emit-value
+          map-options
+          label="Strategy"
+        >
+          <template v-slot:option="scope">
+            <q-item v-bind="scope.itemProps">
+              <q-item-section>
+                <q-item-label>{{ scope.opt.name }}</q-item-label>
+                <q-item-label caption>{{
+                  scope.opt.description
+                }}</q-item-label>
+              </q-item-section>
+            </q-item>
+          </template>
+        </q-select>
+
+        <div class="row q-col-gutter-md">
+          <div class="col-6">
+            <q-input
+              filled
+              v-model.number="policyForm.fee_rate_min"
+              type="number"
+              label="Min Fee Rate (ppm)"
+              hint="Minimum fee rate in parts per million"
+            ></q-input>
+          </div>
+          <div class="col-6">
+            <q-input
+              filled
+              v-model.number="policyForm.fee_rate_max"
+              type="number"
+              label="Max Fee Rate (ppm)"
+              hint="Maximum fee rate"
+            ></q-input>
+          </div>
+        </div>
+
+        <q-input
+          filled
+          v-model.number="policyForm.fee_rate_default"
+          type="number"
+          label="Default Fee Rate (ppm)"
+          hint="Fee rate for balanced liquidity"
+        ></q-input>
+
+        <div class="row q-col-gutter-md">
+          <div class="col-6">
+            <q-input
+              filled
+              v-model.number="policyForm.liquidity_threshold_low"
+              type="number"
+              label="Low Liquidity Threshold (%)"
+              hint="Below this % is considered low"
+            ></q-input>
+          </div>
+          <div class="col-6">
+            <q-input
+              filled
+              v-model.number="policyForm.liquidity_threshold_high"
+              type="number"
+              label="High Liquidity Threshold (%)"
+              hint="Above this % is considered high"
+            ></q-input>
+          </div>
+        </div>
+
+        <q-toggle
+          v-model="policyForm.auto_adjust"
+          label="Enable Auto-Adjustment"
+          hint="Automatically adjust fees on schedule"
+        ></q-toggle>
+
+        <q-input
+          filled
+          v-model.number="policyForm.adjustment_interval"
+          type="number"
+          label="Adjustment Interval (seconds)"
+          hint="Time between automatic adjustments"
+          v-if="policyForm.auto_adjust"
+        ></q-input>
+
+        <q-toggle
+          v-model="policyForm.only_active_channels"
+          label="Only Active Channels"
+        ></q-toggle>
+
+        <div class="row q-mt-lg">
+          <q-btn unelevated color="primary" type="submit" label="Save"></q-btn>
+          <q-btn
+            flat
+            color="grey"
+            class="q-ml-auto"
+            @click="showPolicyDialog = false"
+            label="Cancel"
+          ></q-btn>
+        </div>
+      </q-form>
+    </q-card-section>
+  </q-card>
+</q-dialog>
+
+<!-- History Dialog -->
+<q-dialog v-model="showHistoryDialog" position="top">
+  <q-card class="q-pa-lg lnbits__dialog-card" style="width: 800px">
+    <q-card-section>
+      <h6 class="q-my-none">
+        Adjustment History: {{ selectedPolicy ? selectedPolicy.name : '' }}
+      </h6>
+    </q-card-section>
+    <q-card-section>
+      <q-table
+        flat
+        dense
+        :rows="historyAdjustments"
+        :columns="historyTable.columns"
+        row-key="id"
+        :pagination.sync="historyTable.pagination"
+      ></q-table>
+    </q-card-section>
+    <q-card-section>
+      <q-btn flat color="grey" @click="showHistoryDialog = false" label="Close"></q-btn>
+    </q-card-section>
+  </q-card>
+</q-dialog>
+
+{% endblock %} {% block scripts %}
+<script>
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        policies: [],
+        recentAdjustments: [],
+        showPolicyDialog: false,
+        showCreateDialog: false,
+        showHistoryDialog: false,
+        editingPolicy: null,
+        selectedPolicy: null,
+        historyAdjustments: [],
+        strategies: [],
+        policyForm: this.getEmptyPolicyForm(),
+        policiesTable: {
+          columns: [
+            {name: 'name', align: 'left', label: 'Name', field: 'name'},
+            {
+              name: 'strategy',
+              align: 'left',
+              label: 'Strategy',
+              field: 'strategy'
+            },
+            {
+              name: 'fee_rate_range',
+              align: 'left',
+              label: 'Fee Range (ppm)',
+              field: row =>
+                `${row.fee_rate_min} - ${row.fee_rate_max}`
+            },
+            {
+              name: 'enabled',
+              align: 'left',
+              label: 'Status',
+              field: 'enabled'
+            }
+          ],
+          pagination: {rowsPerPage: 10}
+        },
+        historyTable: {
+          columns: [
+            {
+              name: 'timestamp',
+              align: 'left',
+              label: 'Time',
+              field: 'timestamp',
+              format: val => new Date(val * 1000).toLocaleString()
+            },
+            {
+              name: 'channel',
+              align: 'left',
+              label: 'Channel',
+              field: row => row.channel_id.substring(0, 16) + '...'
+            },
+            {
+              name: 'change',
+              align: 'left',
+              label: 'Fee Change (ppm)',
+              field: row => `${row.old_fee_rate} → ${row.new_fee_rate}`
+            },
+            {name: 'reason', align: 'left', label: 'Reason', field: 'reason'},
+            {
+              name: 'success',
+              align: 'left',
+              label: 'Status',
+              field: 'success',
+              format: val => (val ? 'Success' : 'Failed')
+            }
+          ],
+          pagination: {rowsPerPage: 10}
+        }
+      }
+    },
+    methods: {
+      getEmptyPolicyForm() {
+        return {
+          name: '',
+          strategy: 'balanced',
+          base_fee_min: 0,
+          base_fee_max: 10000,
+          base_fee_default: 1000,
+          fee_rate_min: 1,
+          fee_rate_max: 5000,
+          fee_rate_default: 500,
+          liquidity_threshold_low: 20,
+          liquidity_threshold_high: 80,
+          auto_adjust: true,
+          adjustment_interval: 3600,
+          max_adjustment_per_step: 100,
+          min_channel_size: 0,
+          only_active_channels: true
+        }
+      },
+      loadData() {
+        this.getPolicies()
+        this.getRecentAdjustments()
+        this.getStrategies()
+      },
+      getPolicies() {
+        LNbits.api
+          .request(
+            'GET',
+            '/autofees/api/v1/policies',
+            this.g.user.wallets[0].inkey
+          )
+          .then(response => {
+            this.policies = response.data
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+          })
+      },
+      getRecentAdjustments() {
+        LNbits.api
+          .request(
+            'GET',
+            '/autofees/api/v1/adjustments?limit=10',
+            this.g.user.wallets[0].inkey
+          )
+          .then(response => {
+            this.recentAdjustments = response.data
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+          })
+      },
+      getStrategies() {
+        LNbits.api
+          .request('GET', '/autofees/api/v1/strategies')
+          .then(response => {
+            this.strategies = response.data.strategies
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+          })
+      },
+      savePolicy() {
+        const url = this.editingPolicy
+          ? `/autofees/api/v1/policies/${this.editingPolicy.id}`
+          : '/autofees/api/v1/policies'
+        const method = this.editingPolicy ? 'PUT' : 'POST'
+
+        LNbits.api
+          .request(
+            method,
+            url,
+            this.g.user.wallets[0].adminkey,
+            this.policyForm
+          )
+          .then(response => {
+            if (this.editingPolicy) {
+              const index = this.policies.findIndex(
+                p => p.id === this.editingPolicy.id
+              )
+              this.policies.splice(index, 1, response.data)
+            } else {
+              this.policies.push(response.data)
+            }
+            this.showPolicyDialog = false
+            this.showCreateDialog = false
+            this.editingPolicy = null
+            this.policyForm = this.getEmptyPolicyForm()
+            this.$q.notify({
+              type: 'positive',
+              message: 'Policy saved successfully'
+            })
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+          })
+      },
+      editPolicy(policy) {
+        this.editingPolicy = policy
+        this.policyForm = {...policy}
+        this.showPolicyDialog = true
+      },
+      deletePolicy(policyId) {
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this policy?')
+          .onOk(() => {
+            LNbits.api
+              .request(
+                'DELETE',
+                `/autofees/api/v1/policies/${policyId}`,
+                this.g.user.wallets[0].adminkey
+              )
+              .then(() => {
+                this.policies = this.policies.filter(p => p.id !== policyId)
+                this.$q.notify({
+                  type: 'positive',
+                  message: 'Policy deleted'
+                })
+              })
+              .catch(err => {
+                LNbits.utils.notifyApiError(err)
+              })
+          })
+      },
+      togglePolicy(policy) {
+        const action = policy.enabled ? 'disable' : 'enable'
+        LNbits.api
+          .request(
+            'POST',
+            `/autofees/api/v1/policies/${policy.id}/${action}`,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(response => {
+            const index = this.policies.findIndex(p => p.id === policy.id)
+            this.policies.splice(index, 1, response.data)
+            this.$q.notify({
+              type: 'positive',
+              message: `Policy ${action}d`
+            })
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+          })
+      },
+      triggerPolicy(policyId) {
+        this.$q.notify({
+          type: 'info',
+          message: 'Triggering fee adjustment...'
+        })
+        LNbits.api
+          .request(
+            'POST',
+            `/autofees/api/v1/policies/${policyId}/trigger`,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: `Adjusted ${response.data.adjustments_made} channels`
+            })
+            this.getRecentAdjustments()
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+          })
+      },
+      showHistory(policy) {
+        this.selectedPolicy = policy
+        LNbits.api
+          .request(
+            'GET',
+            `/autofees/api/v1/policies/${policy.id}/adjustments`,
+            this.g.user.wallets[0].inkey
+          )
+          .then(response => {
+            this.historyAdjustments = response.data
+            this.showHistoryDialog = true
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+          })
+      },
+      formatTimestamp(timestamp) {
+        return new Date(timestamp * 1000).toLocaleString()
+      }
+    },
+    watch: {
+      showCreateDialog(val) {
+        if (val) {
+          this.editingPolicy = null
+          this.policyForm = this.getEmptyPolicyForm()
+          this.showPolicyDialog = true
+        }
+      }
+    },
+    created() {
+      this.loadData()
+    }
+  })
+</script>
+{% endblock %}
