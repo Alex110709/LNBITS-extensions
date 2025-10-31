@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SatsBall Admin</title>
+    <link rel="stylesheet" href="/satsball/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>SatsBall Admin Dashboard</h1>
+        
+        <div class="admin-actions">
+            <button id="create-stack-btn" class="admin-button">Create New Stack</button>
+        </div>
+        
+        <h2>Stack Management</h2>
+        <div class="stacks-container">
+            {% if stacks %}
+                {% for stack in stacks %}
+                <div class="stack-card admin-stack-card">
+                    <h2>{{ stack.name }} {% if not stack.enabled %}(Disabled){% endif %}</h2>
+                    <p>{{ stack.description }}</p>
+                    <div class="stack-info">
+                        <p>Current Amount: <strong>{{ stack.current_amount }} sats</strong></p>
+                        <p>Bet Price: <strong>{{ stack.bet_price }} sats</strong></p>
+                        <p>Winning Probability: <strong>{{ (stack.winning_probability * 100) | round(2) }}%</strong></p>
+                        <p>Fee: <strong>{{ stack.fee_percentage }}%</strong></p>
+                    </div>
+                    <div class="admin-actions">
+                        <button class="admin-button edit-stack" data-stack-id="{{ stack.id }}">Edit</button>
+                        <button class="admin-button delete-stack" data-stack-id="{{ stack.id }}">Delete</button>
+                        <a href="/satsball/admin/history/{{ stack.id }}" class="admin-button">View History</a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No stacks created yet.</p>
+            {% endif %}
+        </div>
+        
+        <div id="stack-form-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2 id="form-title">Create New Stack</h2>
+                <form id="stack-form">
+                    <input type="hidden" id="stack-id" name="id">
+                    <div class="form-group">
+                        <label for="name">Name:</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description:</label>
+                        <textarea id="description" name="description" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="bet_price">Bet Price (sats):</label>
+                        <input type="number" id="bet_price" name="bet_price" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="winning_probability">Winning Probability (0.0-1.0):</label>
+                        <input type="number" id="winning_probability" name="winning_probability" min="0" max="1" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="fee_percentage">Fee Percentage (0-100):</label>
+                        <input type="number" id="fee_percentage" name="fee_percentage" min="0" max="100" step="0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="enabled">Enabled:</label>
+                        <input type="checkbox" id="enabled" name="enabled" checked>
+                    </div>
+                    <button type="submit" class="admin-button">Save Stack</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/satsball/static/script.js"></script>
+</body>
+</html>
